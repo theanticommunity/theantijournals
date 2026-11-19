@@ -188,7 +188,7 @@ function init() {
 
     const authorId = id();
     db.prepare('INSERT INTO authors (id, name, slug) VALUES (@id, @name, @slug)').run({
-      id: authorId, name: 'AntiPerson Editors', slug: 'antiperson-editors',
+      id: authorId, name: 'AntiJournals Editors', slug: 'antiperson-editors',
     });
 
     const articles = [
@@ -201,7 +201,7 @@ function init() {
         author_id: authorId, category_id: categories[0].id,
         status: 'published', published_at: new Date(Date.now() - 5 * 86400000).toISOString(),
         reading_time: 8, is_premium: 0, view_count: 1240,
-        seo_title: 'On the quiet violence of being understood — AntiPerson',
+        seo_title: 'On the quiet violence of being understood — AntiJournals',
         seo_description: 'A reflection on intimacy, translation, and the spaces between what we say and what is heard.',
       },
       {
@@ -213,7 +213,7 @@ function init() {
         author_id: authorId, category_id: categories[1].id,
         status: 'published', published_at: new Date(Date.now() - 7 * 86400000).toISOString(),
         reading_time: 6, is_premium: 1, preview_length: 200, view_count: 890,
-        seo_title: 'The architecture of small betrayals — AntiPerson',
+        seo_title: 'The architecture of small betrayals — AntiJournals',
         seo_description: 'How minor disappointments shape the contours of long-term relationships.',
       },
       {
@@ -225,7 +225,7 @@ function init() {
         author_id: authorId, category_id: categories[2].id,
         status: 'published', published_at: new Date(Date.now() - 10 * 86400000).toISOString(),
         reading_time: 5, is_premium: 0, view_count: 650,
-        seo_title: 'Notes on silence as a political act — AntiPerson',
+        seo_title: 'Notes on silence as a political act — AntiJournals',
         seo_description: 'What it means to withhold speech in an age that demands constant commentary.',
       },
     ];

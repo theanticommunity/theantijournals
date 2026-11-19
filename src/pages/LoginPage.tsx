@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { authApi } from '@/lib/api';
+import { auth, signInWithEmailAndPassword } from '@/firebase/config';
 
 export function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,7 +14,7 @@ export function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await authApi.login({ email, password });
+      await signInWithEmailAndPassword(auth, email, password);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -27,7 +27,7 @@ export function LoginPage() {
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="masthead mb-2">AntiPerson</div>
+          <div className="masthead mb-2">AntiJournals</div>
           <div className="masthead-sub mb-6">Log in</div>
         </div>
 

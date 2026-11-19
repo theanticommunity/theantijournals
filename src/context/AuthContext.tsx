@@ -1,44 +1,80 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import type { User } from '@/types/index';
-import { authApi } from '@/lib/api';
-import { AuthContext, type AuthContextType } from './useAuth';
+import {
+  auth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  firebaseUpdateProfile,
+  type User,
+} from '@/firebase/config';
+import { AuthContext, type AuthContextType } from './AuthContext';
+
+type ProfileType = {
+  id: string;
+  email: string;
+  full_name?: string;
+  role?: string;
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const loadProfile = async () => {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${await auth.currentUser?.getIdToken()}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfile(data.data);
+      }
+    } catch {
+      // Profile load failed silently
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    authApi.me().then(({ data }) => { if (mounted) setUser(data); }).catch(() => { if (mounted) setUser(null); }).finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
+    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser ?? null);
+      if (firebaseUser) {
+        await loadProfile();
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { data } = await authApi.login({ email, password });
-    setUser(data);
+    await signInWithEmailAndPassword(auth, email, password);
   };
 
   const register = async (email: string, password: string, name: string) => {
-    const { data } = await authApi.register({ email, password, name });
-    setUser(data);
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    if (cred.user) {
+      await firebaseUpdateProfile(cred.user, { displayName: name });
+    }
   };
 
   const logout = async () => {
-    await authApi.logout().catch(() => {});
-    setUser(null);
+    await signOut(auth);
   };
 
   const refresh = async () => {
-    try {
-      const { data } = await authApi.me();
-      setUser(data);
-    } catch {
-      setUser(null);
+    if (auth.currentUser) {
+      await auth.currentUser.getIdToken(true);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh } as AuthContextType}>
+    <AuthContext.Provider value={{ user, profile, loading, login, register, logout, refresh } as AuthContextType}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { articleApi, bookmarkApi } from '@/lib/api';
+import { articleApi, bookmarkApi, membershipApi } from '@/lib/api';
 import { useAuth } from '@/context/useAuth';
 import { useAnalytics } from '@/context/useAnalytics';
 import type { Article } from '@/types/index';
 import { ArticleSEO } from '@/components/SEO';
+import DOMPurify from 'dompurify';
 
 function parseTOC(content: string): { id: string; text: string; level: number }[] {
   const headingRegex = /<h([23])[^>]*>(.*?)<\/h[23]>/gi;
@@ -20,16 +21,14 @@ function parseTOC(content: string): { id: string; text: string; level: number }[
   return headings;
 }
 
-function slugify(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-}
-
 export function ArticlePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { track } = useAnalytics();
   const [article, setArticle] = useState<Article | null>(null);
+  const [related, setRelated] = useState<Article[]>([]);
+  const [membership, setMembership] = useState<{ membership: string; subscription_status: string | null } | null>(null);
   const [readingMode, setReadingMode] = useState<'light' | 'dark'>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('antiperson:reading-mode');
@@ -47,25 +46,38 @@ export function ArticlePage() {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const tocRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   const headings = article ? parseTOC(article.content) : [];
 
   useEffect(() => {
-    articleApi.get(slug!).then(({ data }) => {
+    articleApi.get(slug!).then((res: any) => {
+      const data = res.data;
       setArticle(data);
       setLoading(false);
       track('article_view', { article_id: data.id });
+      // Fetch related articles by tag
+      if (data.tags?.[0]) {
+        articleApi.list({ tag: data.tags[0].slug, per_page: 3 }).then((r: any) => {
+          const related = r.data || [];
+          setRelated(related.filter((a: any) => a.id !== data.id).slice(0, 2));
+        }).catch(() => {});
+      }
     }).catch(() => {
       setLoading(false);
+      setAccessDenied(true);
     });
   }, [slug, track]);
 
   useEffect(() => {
     if (user) {
+      membershipApi.get().then(({ data }) => {
+        setMembership(data);
+      }).catch(() => {});
       bookmarkApi.check(slug!).then(({ data }) => {
-        setIsBookmarked(data.data.bookmarked);
+        setIsBookmarked(data.bookmarked);
       }).catch(() => {});
     }
   }, [user, slug]);
@@ -111,6 +123,8 @@ export function ArticlePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  const hasPremiumAccess = membership?.membership === 'premium' && membership?.subscription_status === 'active';
+
   const fontSizeStyles: Record<string, string> = {
     small: 'text-lg leading-relaxed',
     medium: 'text-xl leading-relaxed md:text-2xl',
@@ -120,7 +134,26 @@ export function ArticlePage() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-        <div className="masthead mb-2">AntiPerson</div>
+        <div className="masthead mb-2">AntiJournals</div>
+      </div>
+    );
+  }
+
+  if (accessDenied && !article) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+        <div className="max-w-2xl mx-auto text-center py-20">
+          <h1 className="text-3xl font-serif text-black mb-6">Subscription Required</h1>
+          <p className="text-secondary-grey text-sm mb-8 max-w-lg">
+            This publication is for premium members only. Subscribe to read it in full.
+          </p>
+          <Link to="/membership" className="btn">
+            Subscribe to Premium
+          </Link>
+          <p className="mt-6 text-xs text-secondary-grey">
+            Already subscribed? Please log in to access your content.
+          </p>
+        </div>
       </div>
     );
   }
@@ -134,14 +167,9 @@ export function ArticlePage() {
     );
   }
 
-  const isPremiumLocked = article.is_premium && !(user?.membership === 'premium');
-  const previewContent = article.preview_length
-    ? article.content.slice(0, article.preview_length) + '…'
-    : article.content;
-
   return (
     <>
-      <ArticleSEO article={article} />
+      <ArticleSEO article={article as unknown as { title: string; subtitle?: string; seo_title?: string; seo_description?: string; slug: string; author_name: string; published_at?: string; updated_at?: string; featured_image?: string; category_name?: string; tags: { name: string }[] } } />
       <article
         className={`relative max-w-3xl mx-auto px-6 py-12 md:py-24 min-h-svh bg-white transition-colors duration-300 ${readingMode === 'dark' ? 'bg-black text-white' : ''}`}
       >
@@ -243,12 +271,12 @@ export function ArticlePage() {
 
         <header className="mb-16">
           <div className="flex flex-wrap items-center gap-4 mb-6">
-            {article.category_name && (
-              <Link to={`/archive?category=${slugify(article.category_name)}`} className="tag">
-                {article.category_name}
+            {article.categories?.slice(0, 1).map((c) => (
+              <Link key={c.id} to={`/archive?category=${c.slug}`} className="tag">
+                {c.name}
               </Link>
-            )}
-            {article.tags.map((t) => (
+            ))}
+            {article.tags?.map((t) => (
               <Link key={t.id} to={`/archive?tag=${t.slug}`} className="tag">
                 {t.name}
               </Link>
@@ -256,7 +284,7 @@ export function ArticlePage() {
           </div>
 
           <span className="block text-[11px] font-sans font-medium tracking-widest uppercase text-secondary-grey mb-2">
-            {article.author_name}
+            {article.author_full_name || article.author_name || 'AntiJournals Editors'}
           </span>
           <h1 className="text-balance text-4xl md:text-5xl font-serif text-black dark:text-white leading-tight mb-6">
             {article.title}
@@ -269,10 +297,10 @@ export function ArticlePage() {
 
           <div className="flex items-center gap-4 text-[11px] font-sans font-medium tracking-widest uppercase text-secondary-grey border-t border-black/10 dark:border-white/10 pt-4">
             <span>{new Date(article.published_at!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-            {article.updated_at && article.updated_at !== article.published_at && (
+            {article.last_modified_at && article.last_modified_at !== article.published_at && (
               <>
                 <span>·</span>
-                <span>Updated {new Date(article.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                <span>Updated {new Date(article.last_modified_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
               </>
             )}
             <span>·</span>
@@ -280,24 +308,39 @@ export function ArticlePage() {
           </div>
         </header>
 
-        <div ref={contentRef} className={`article-body relative z-10 ${fontSizeStyles[fontSize]} ${readingMode === 'dark' ? 'dark' : ''}`} dangerouslySetInnerHTML={{ __html: isPremiumLocked ? previewContent : article.content }} />
+        <div ref={contentRef} className={`article-body relative z-10 ${fontSizeStyles[fontSize]} ${readingMode === 'dark' ? 'dark' : ''}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(article.content) }} />
 
-        {isPremiumLocked && (
-          <div className="mt-16 pt-8 border-t border-black/10 dark:border-white/10">
-            <div className="p-8 bg-light-grey dark:bg-secondary-grey/30">
-              <h3 className="text-xl font-serif text-black dark:text-white mb-4">Subscribe to read the rest</h3>
-              <p className="text-secondary-grey dark:text-secondary-grey/70 text-sm mb-6">
-                Become a premium member to read this publication in full.
-              </p>
-              <Link to="/membership" className="btn">Join premium</Link>
-            </div>
-          </div>
+        {article.is_premium && !hasPremiumAccess && (
+          <section className="mt-16 border-t border-black/10 dark:border-white/10 pt-12 bg-black/5 dark:bg-white/5">
+            <h2 className="text-2xl font-serif text-black dark:text-white mb-6">Continue reading</h2>
+            <p className="text-secondary-grey dark:text-secondary-grey/70 text-sm leading-relaxed mb-8 max-w-lg">
+              This is a preview of a premium publication. Subscribe to read the full article.
+            </p>
+            <Link to="/membership" className="btn inline-block">
+              Subscribe to Premium
+            </Link>
+          </section>
         )}
 
         <section className="mt-20 border-t border-black/10 dark:border-white/10 pt-12">
           <h2 className="text-2xl font-serif text-black dark:text-white mb-8">Related publications</h2>
           <div className="grid md:grid-cols-2 gap-8">
-            {[]}
+            {related.map((article) => (
+              <div key={article.id} className="group">
+                <h3 className="text-lg font-serif text-black dark:text-white leading-tight group-hover:text-secondary-grey transition-colors mb-2">
+                  {article.title}
+                </h3>
+                <p className="text-secondary-grey dark:text-secondary-grey/70 text-sm leading-relaxed line-clamp-2 mb-3">
+                  {article.excerpt || ''}
+                </p>
+                <Link
+                  to={`/articles/${article.slug}`}
+                  className="text-[10px] font-sans font-medium tracking-widest uppercase text-black dark:text-white underline decoration-1/40 underline-offset-2 hover:decoration-black/80"
+                >
+                  Read
+                </Link>
+              </div>
+            ))}
           </div>
         </section>
       </article>

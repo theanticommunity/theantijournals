@@ -1,163 +1,212 @@
-import type {
-  Article, ArticleFilters, ApiResponse, User, Category, Tag,
-  AdminArticle, AdminListResponse, AdminItemResponse,
-} from '@/types/index';
-
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 class ApiClient {
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+  async request<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const res = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
       ...options,
-      headers,
-      credentials: 'include',
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Request failed: ${response.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(err.error || 'Request failed');
     }
-
-    return response.json();
+    return res.json();
   }
 
-  get<T>(endpoint: string, params?: ArticleFilters | Record<string, string | number>) {
-    let url = endpoint;
+  async get<T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> {
+    const url = new URL(`${API_BASE}${path}`, window.location.origin);
     if (params) {
-      const searchParams = new URLSearchParams();
-      Object.entries(params as Record<string, string | number | boolean>).forEach(([key, value]) => {
-        searchParams.append(key, String(value));
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        url.searchParams.set(key, String(value));
       });
-      url = `${endpoint}?${searchParams.toString()}`;
     }
-    return this.request<T>(url);
-  }
-
-  post<T>(endpoint: string, body: unknown) {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    });
-  }
-
-  put<T>(endpoint: string, body: unknown) {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-    });
-  }
-
-  delete<T>(endpoint: string) {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+    const res = await fetch(url.toString(), { method: 'GET' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(err.error || 'Request failed');
+    }
+    return res.json();
   }
 }
 
 export const api = new ApiClient();
 
+async function getIdToken(): Promise<string> {
+  const { auth } = await import('@/firebase/config');
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not authenticated');
+  return user.getIdToken();
+}
+
 // Article endpoints
 export const articleApi = {
-  list: (filters?: ArticleFilters) => api.get<Article[]>('/articles', filters),
-  get: (slug: string) => api.get<Article>(`/articles/${slug}`),
-  create: (body: unknown) => api.post<Article>('/admin/articles', body),
-  update: (id: string, body: unknown) => api.put<Article>(`/admin/articles/${id}`, body),
-  delete: (id: string) => api.delete(`/admin/articles/${id}`),
+  list: (filters?: Record<string, string | number | boolean>) => api.get('/articles', filters),
+  get: (slug: string) => api.get(`/articles/${encodeURIComponent(slug)}`),
 };
 
 // Category endpoints
 export const categoryApi = {
-  list: () => api.get<Category[]>('/categories'),
+  list: () => api.get('/categories'),
 };
 
 // Tag endpoints
 export const tagApi = {
-  list: () => api.get<Tag[]>('/tags'),
+  list: () => api.get('/tags'),
+};
+
+// Search endpoint
+export const searchApi = {
+  search: (q: string) => api.get('/search', { q }),
 };
 
 // Auth endpoints
 export const authApi = {
-  register: (body: { email: string; password: string; name: string }) =>
-    api.post<User>('/auth/register', body),
-  login: (body: { email: string; password: string }) =>
-    api.post<User>('/auth/login', body),
-  logout: () => api.post('/auth/logout', {}),
-  me: () => api.get<User>('/auth/me'),
-  resetPassword: (body: { email: string }) =>
-    api.post('/auth/password-reset', body),
-  updateProfile: (body: { name: string; email: string }) =>
-    api.put<User>('/auth/profile', body),
-  changePassword: (body: { currentPassword: string; newPassword: string }) =>
-    api.post<{ data: { ok: boolean } }>('/auth/change-password', body),
+  me: async () => {
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Not authenticated');
+    return res.json();
+  },
+  updateProfile: async (body: { full_name: string }) => {
+    const res = await fetch(`${API_BASE}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await getIdToken()}`,
+      },
+      body: JSON.stringify({ name: body.full_name }),
+    });
+    if (!res.ok) throw new Error('Failed to update profile');
+    return res.json();
+  },
+  deleteAccount: async () => {
+    const res = await fetch(`${API_BASE}/auth/account`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to delete account');
+    return res.json();
+  },
 };
 
 // Bookmark endpoints
 export const bookmarkApi = {
-  list: () => api.get<{ data: { id: string; article_id: string; title: string; slug: string; excerpt?: string; reading_time: number; is_premium: boolean; created_at: string }[] }>('/bookmarks'),
-  create: (article_id: string) => api.post<{ data: { id: string } }>('/bookmarks', { article_id }),
-  remove: (article_id: string) => api.delete<{ data: { ok: boolean } }>(`/bookmarks/${article_id}`),
-  check: (article_id: string) => api.get<{ data: { bookmarked: boolean } }>(`/bookmarks/check/${article_id}`),
+  list: async () => {
+    const res = await fetch(`${API_BASE}/bookmarks`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to load bookmarks');
+    return res.json();
+  },
+  create: async (article_id: string) => {
+    const res = await fetch(`${API_BASE}/bookmarks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await getIdToken()}`,
+      },
+      body: JSON.stringify({ article_id }),
+    });
+    if (!res.ok) throw new Error('Failed to bookmark');
+    return res.json();
+  },
+  remove: async (article_id: string) => {
+    const res = await fetch(`${API_BASE}/bookmarks/${encodeURIComponent(article_id)}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to remove bookmark');
+    return res.json();
+  },
+  check: async (article_id: string) => {
+    const res = await fetch(`${API_BASE}/bookmarks/check/${encodeURIComponent(article_id)}`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to check bookmark');
+    return res.json();
+  },
 };
 
 // Membership endpoint
 export const membershipApi = {
-  get: () => api.get<{ data: { membership: string; subscription_status: string | null } }>('/membership'),
-};
-
-// Analytics endpoint
-export const analyticsApi = {
-  track: (body: { event_type: string; article_id?: string; user_id?: string; session_id?: string; ip?: string; user_agent?: string; referrer?: string }) =>
-    api.post('/analytics', body),
+  get: async () => {
+    const res = await fetch(`${API_BASE}/membership`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to load membership');
+    return res.json();
+  },
 };
 
 // Newsletter endpoints
 export const newsletterApi = {
-  subscribe: (body: { email: string }) => api.post('/newsletter/subscribe', body),
-  verify: (body: { token: string }) => api.post('/newsletter/verify', body),
-  unsubscribe: (body: { token: string }) => api.post('/newsletter/unsubscribe', body),
+  subscribe: (body: { email: string }) => api.request('/newsletter/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  verify: (body: { token: string }) => api.request('/newsletter/verify', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  unsubscribe: (body: { email: string }) => api.request('/newsletter/unsubscribe', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
 };
 
-// Search
-export const searchApi = {
-  search: (q: string) => api.get<Article[]>('/search', { q }),
-};
-
-// Payments
+// Payments endpoints
 export const paymentApi = {
-  createSubscription: (body: { plan: string; email: string }) =>
-    api.post<{ data: { authorization_url: string; reference: string } }>('/payments/subscription', body),
-  createPurchase: (body: { article_id: string; email: string }) =>
-    api.post<{ data: { authorization_url: string; reference: string } }>('/payments/purchase', body),
-  verify: (reference: string) =>
-    api.get<{ data: { status: string; reference: string; metadata: Record<string, unknown>; amount: number; paid: boolean } }>(`/payments/verify/${reference}`),
+  createSubscription: async (body: { plan: string; email: string }) => {
+    const res = await fetch(`${API_BASE}/payments/subscription`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${await getIdToken()}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Subscription initialization failed');
+    return res.json();
+  },
+  createPurchase: async (body: { article_id: string; email: string }) => {
+    const res = await fetch(`${API_BASE}/payments/purchase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Purchase initialization failed');
+    return res.json();
+  },
+  verify: async (reference: string) => {
+    const res = await fetch(`${API_BASE}/payments/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Verification failed');
+    return res.json();
+  },
+  history: async () => {
+    const res = await fetch(`${API_BASE}/payments/history`, {
+      headers: { Authorization: `Bearer ${await getIdToken()}` },
+    });
+    if (!res.ok) throw new Error('Failed to load payment history');
+    return res.json();
+  },
 };
 
-// Admin endpoints
-export const adminApi = {
-  articles: {
-    list: (params?: { status?: string; search?: string; page?: number; per_page?: number }) =>
-      api.get<AdminListResponse<AdminArticle>>('/admin/articles', params),
-    get: (id: string) => api.get<AdminItemResponse<AdminArticle>>(`/admin/articles/${id}`),
-    create: (body: unknown) => api.post<AdminItemResponse<{ id: string }>>('/admin/articles', body),
-    update: (id: string, body: unknown) => api.put<AdminItemResponse<{ ok: boolean }>>(`/admin/articles/${id}`, body),
-    delete: (id: string) => api.delete<AdminItemResponse<{ ok: boolean }>>(`/admin/articles/${id}`),
-  },
-  categories: {
-    list: () => api.get<AdminListResponse<Category>>('/admin/categories'),
-    create: (body: unknown) => api.post<AdminItemResponse<{ id: string }>>('/admin/categories', body),
-    update: (id: string, body: unknown) => api.put<AdminItemResponse<{ ok: boolean }>>(`/admin/categories/${id}`, body),
-    delete: (id: string) => api.delete<AdminItemResponse<{ ok: boolean }>>(`/admin/categories/${id}`),
-  },
-  tags: {
-    list: () => api.get<AdminListResponse<Tag>>('/admin/tags'),
-    create: (body: unknown) => api.post<AdminItemResponse<{ id: string }>>('/admin/tags', body),
-    update: (id: string, body: unknown) => api.put<AdminItemResponse<{ ok: boolean }>>(`/admin/tags/${id}`, body),
-    delete: (id: string) => api.delete<AdminItemResponse<{ ok: boolean }>>(`/admin/tags/${id}`),
+// Analytics endpoint
+export const analyticsApi = {
+  track: async (body: { event_type: string; article_id?: string; user_id?: string; session_id?: string }) => {
+    const res = await fetch(`${API_BASE}/analytics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Failed to record event');
+    return res.json();
   },
 };

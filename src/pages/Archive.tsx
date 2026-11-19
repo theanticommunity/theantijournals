@@ -22,16 +22,16 @@ export function Archive() {
 
   useEffect(() => {
     articleApi.list({
-      category, search: query || undefined, sort,
-      page, per_page: PER_PAGE, premium: false,
-    }).then(({ data, meta }) => {
-      setArticles(data);
-      if (meta) setMeta(meta);
+      category, search: query || '', sort,
+      page, per_page: PER_PAGE,
+    }).then((res: any) => {
+      setArticles(res.data || []);
+      if (res.meta) setMeta(res.meta);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [query, category, sort, page]);
 
   useEffect(() => {
-    categoryApi.list().then(({ data }) => setCategories(data));
+    categoryApi.list().then((res: any) => setCategories(res.data || []));
   }, []);
 
   const updateQuery = (key: string, value: string) => {
@@ -51,7 +51,7 @@ export function Archive() {
             <div className="flex-1">
               <h1 className="text-3xl md:text-4xl font-serif text-black mb-2">Archive</h1>
               <p className="text-secondary-grey text-sm">
-                Explore the complete AntiPerson publication archive.
+                Explore the complete AntiJournals publication archive.
               </p>
             </div>
 
@@ -136,7 +136,7 @@ export function Archive() {
                       </p>
                     )}
                     <div className="flex flex-wrap gap-2">
-                      {article.tags.slice(0, 2).map((t) => (
+                      {article.tags?.slice(0, 2).map((t) => (
                         <Link
                           key={t.id}
                           to={`/archive?tag=${t.slug}`}
@@ -156,9 +156,9 @@ export function Archive() {
                         <span>·</span>
                         <ReadingTime minutes={article.reading_time} />
                       </div>
-                      {article.is_premium && (
+                      {article.access_classification !== 'free' && (
                         <span className="text-[10px] font-sans font-bold tracking-widest uppercase text-secondary-grey border border-light-grey px-2 py-0.5">
-                          Premium
+                          Member
                         </span>
                       )}
                     </div>

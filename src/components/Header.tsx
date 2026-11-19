@@ -17,7 +17,7 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <Link to="/" className="masthead flex-shrink-0" onClick={() => setMenuOpen(false)}>
-            AntiPerson
+            AntiJournals
           </Link>
 
           <nav className="hidden md:flex items-center gap-8 text-xs font-sans font-medium tracking-widest uppercase">
@@ -30,13 +30,6 @@ export function Header() {
                 {link.label}
               </Link>
             ))}
-            <a
-              href="/admin"
-              className="nav-link hover:text-secondary-grey transition-colors"
-              rel="noreferrer"
-            >
-              Admin
-            </a>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -105,14 +98,6 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              <a
-                href="/admin"
-                className="block px-3 py-2 text-xs font-sans font-medium tracking-widest uppercase text-black hover:bg-light-grey rounded"
-                onClick={() => setMenuOpen(false)}
-                rel="noreferrer"
-              >
-                Admin
-              </a>
               {!user ? (
                 <>
                   <Link

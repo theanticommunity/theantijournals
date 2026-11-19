@@ -5,7 +5,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'A reflection on intimacy, translation, and the spaces between what we say and what is heard.',
     slug: 'quiet-violence-being-understood',
     excerpt: 'We assume that being understood is a form of safety. But what if comprehension is its own kind of exposure — a surrender we did not consent to?',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Essays',
     tags: [
       { id: 't1', name: 'Intimacy', slug: 'intimacy' },
@@ -25,7 +25,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'How minor disappointments shape the contours of long-term relationships.',
     slug: 'architecture-small-betrayals',
     excerpt: 'It is rarely the grand rupture that ends things. It is the accumulation of small, unremarkable moments — the ones we forget to mention.',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Observations',
     tags: [
       { id: 't4', name: 'Relationships', slug: 'relationships' },
@@ -44,7 +44,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'What it means to withhold speech in an age that demands constant commentary.',
     slug: 'notes-silence-political-act',
     excerpt: 'We are told to speak up, to post, to declare. But there is dignity in restraint, power in the unuttered, and clarity in the pause.',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Opinion',
     tags: [
       { id: 't6', name: 'Society', slug: 'society' },
@@ -62,7 +62,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'On memory, physical sensation, and the stories our tissues tell.',
     slug: 'body-keeps-ledger',
     excerpt: 'We think of memory as something housed in the mind. But the body remembers differently — in tension, in temperature, in the way a shoulder lifts at a certain word.',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Reflections',
     tags: [
       { id: 't8', name: 'Body', slug: 'body' },
@@ -80,7 +80,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'A meditation on the things we carry and why we cannot put them down.',
     slug: 'ordinary-objects-extraordinary-weight',
     excerpt: 'A key, a cup, a photograph — inert things that somehow hold more mass than their physical form suggests.',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Observations',
     tags: [
       { id: 't10', name: 'Objects', slug: 'objects' },
@@ -98,7 +98,7 @@ export const DEMO_ARTICLES = [
     subtitle: 'Why the framing itself may be the problem.',
     slug: 'myth-work-life-balance',
     excerpt: 'We pursue equilibrium as though life were a scale to be balanced. But perhaps life is not a scale — it is a current.',
-    author_name: 'AntiPerson Editors',
+    author_name: 'AntiJournals Editors',
     category_name: 'Opinion',
     tags: [
       { id: 't12', name: 'Work', slug: 'work' },
@@ -121,5 +121,5 @@ export const DEMO_CATEGORIES = [
 ];
 
 export const DEMO_AUTHORS = [
-  { id: 'a1', name: 'AntiPerson Editors', slug: 'antiperson-editors', bio: undefined },
+  { id: 'a1', name: 'AntiJournals Editors', slug: 'antiperson-editors', bio: undefined },
 ];

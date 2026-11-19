@@ -3,16 +3,16 @@ export function AboutPage() {
     <div className="bg-white">
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="masthead mb-2">AntiPerson</div>
+          <div className="masthead mb-2">AntiJournals</div>
           <div className="masthead-sub mb-10">Independent publication</div>
 
           <h1 className="text-balance text-5xl md:text-6xl font-serif text-black leading-tight mb-10">
-            AntiPerson
+            AntiJournals
           </h1>
 
           <div className="article-body font-serif text-lg leading-relaxed">
             <p className="mb-6">
-              AntiPerson is an independent digital publication built around human
+              AntiJournals is an independent digital publication under AntiPerson, built around human
               thoughts, observations, opinions, experiences, ideas, morality, humanity,
               and society.
             </p>
@@ -32,15 +32,16 @@ export function AboutPage() {
             </p>
 
             <p className="mb-6">
-              AntiPerson combines the character of an independent digital magazine, a
+              AntiJournals combines the character of an independent digital magazine, a
               contemporary literary journal, an experimental editorial publication, and a
               minimalist intellectual archive.
             </p>
 
             <p className="mb-6">
-              Readers can explore free publications, purchase premium content, subscribe
-              to paid memberships, and browse the archive — all without requiring an
-              account.
+              Readers can explore almost all free publications without signing in. Signing in removes ads, grants
+              access to member-only content, and lets you bookmark publications. Some publications are released as
+              collections — groups of letters later merged into books — which may be free or available for
+              purchase.
             </p>
           </div>
 
@@ -50,7 +51,7 @@ export function AboutPage() {
             <div>
               <h2 className="text-2xl font-serif text-black mb-6">Editorial direction</h2>
               <p className="text-secondary-grey text-sm leading-relaxed mb-4">
-                Typography is central to the AntiPerson identity. Expressive serif
+                Typography is central to the AntiJournals identity. Expressive serif
                 typography for editorial headlines, paired with clean sans-serif for
                 navigation and interface elements. The design relies on typography,
                 contrast, spacing, composition, and imagery — colour is used sparingly.
@@ -65,12 +66,13 @@ export function AboutPage() {
             <div>
               <h2 className="text-2xl font-serif text-black mb-6">Membership</h2>
               <p className="text-secondary-grey text-sm leading-relaxed mb-4">
-                Free membership provides access to free publications, newsletter
-                subscription, optional user accounts, and bookmarks.
+                Free members can read free publications, subscribe to the newsletter, and bookmark content. Signing
+                in removes ads across the site.
               </p>
               <p className="text-secondary-grey text-sm leading-relaxed">
-                Premium membership provides access to premium publications, exclusive
-                articles, and member-only content.
+                Premium members receive ad-free reading, access to premium publications, and member-only
+                collections. Collections group letters into books — some collections are free, others are available
+                for purchase just like a book.
               </p>
             </div>
           </div>

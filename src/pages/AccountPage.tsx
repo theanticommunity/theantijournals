@@ -2,22 +2,21 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/useAuth';
 import { authApi, bookmarkApi, membershipApi } from '@/lib/api';
-
 type BookmarkItem = {
   id: string;
-  article_id: string;
+  publication_id: string;
   title: string;
   slug: string;
   excerpt?: string;
   reading_time: number;
-  is_premium: boolean;
+  access_classification?: string;
   created_at: string;
 };
 
 export function AccountPage() {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [profileName, setProfileName] = useState(profile?.full_name || '');
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [membership, setMembership] = useState<{ membership: string; subscription_status: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +32,7 @@ export function AccountPage() {
           membershipApi.get(),
         ]);
         setBookmarks(bRes.data.data);
-        setMembership(mRes.data.data);
+        setMembership(mRes.data);
       } catch {
         // Ignore
       } finally {
@@ -47,7 +46,7 @@ export function AccountPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await authApi.updateProfile(profile);
+      await authApi.updateProfile({ full_name: profileName });
       setMessage({ text: 'Profile updated.', type: 'success' });
     } catch (err) {
       setMessage({ text: err instanceof Error ? err.message : 'Failed to update profile.', type: 'error' });
@@ -56,30 +55,26 @@ export function AccountPage() {
     }
   }
 
-  async function handlePasswordChange(e: React.FormEvent) {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const currentPasswordEl = form.elements.namedItem('currentPassword') as HTMLInputElement | null;
-    const newPasswordEl = form.elements.namedItem('newPassword') as HTMLInputElement | null;
-    const currentPassword = currentPasswordEl?.value ?? '';
-    const newPassword = newPasswordEl?.value ?? '';
+  async function handleDeleteAccount() {
+    if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
     setSaving(true);
     try {
-      await authApi.changePassword({ currentPassword, newPassword });
-      setMessage({ text: 'Password changed.', type: 'success' });
+      await authApi.deleteAccount();
+      await logout();
+      navigate('/');
     } catch (err) {
-      setMessage({ text: err instanceof Error ? err.message : 'Failed to change password.', type: 'error' });
+      setMessage({ text: err instanceof Error ? err.message : 'Failed to delete account.', type: 'error' });
     } finally {
       setSaving(false);
     }
   }
 
-  async function toggleBookmark(articleId: string, currentlyBookmarked: boolean) {
+  async function toggleBookmark(publicationId: string, currentlyBookmarked: boolean) {
     try {
       if (currentlyBookmarked) {
-        await bookmarkApi.remove(articleId);
+        await bookmarkApi.remove(publicationId);
       } else {
-        await bookmarkApi.create(articleId);
+        await bookmarkApi.create(publicationId);
       }
       const res = await bookmarkApi.list();
       setBookmarks(res.data.data);
@@ -91,7 +86,7 @@ export function AccountPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="masthead mb-2">AntiPerson</div>
+        <div className="masthead mb-2">AntiJournals</div>
         <p className="text-secondary-grey text-sm">Loading account…</p>
       </div>
     );
@@ -101,7 +96,7 @@ export function AccountPage() {
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-serif text-white mb-2">Account</h2>
-        <p className="text-secondary-grey text-sm">Manage your AntiPerson account.</p>
+        <p className="text-secondary-grey text-sm">Manage your AntiJournals account.</p>
       </div>
 
       {message.text && (
@@ -138,23 +133,14 @@ export function AccountPage() {
                 <input
                   type="text"
                   required
-                  value={profile.name}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
                   className="w-full px-4 py-3 text-sm border border-white/20 bg-black/20 text-white focus:outline-none focus:ring-1 focus:ring-white"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] font-sans font-medium tracking-widest uppercase text-secondary-grey mb-2">
-                  Email address
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                  className="w-full px-4 py-3 text-sm border border-white/20 bg-black/20 text-white focus:outline-none focus:ring-1 focus:ring-white"
-                />
-              </div>
+              <p className="text-[11px] text-secondary-grey">
+                Email is managed by your authentication provider.
+              </p>
               <button
                 type="submit"
                 disabled={saving}
@@ -166,43 +152,14 @@ export function AccountPage() {
           </div>
 
           <div>
-            <h3 className="text-xl font-serif text-white mb-6">Change password</h3>
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div>
-                <label className="block text-[11px] font-sans font-medium tracking-widest uppercase text-secondary-grey mb-2">
-                  Current password
-                </label>
-                <input
-                  type="password"
-                  required
-                  name="currentPassword"
-                  className="w-full px-4 py-3 text-sm border border-white/20 bg-black/20 text-white focus:outline-none focus:ring-1 focus:ring-white"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-sans font-medium tracking-widest uppercase text-secondary-grey mb-2">
-                  New password
-                </label>
-                <input
-                  type="password"
-                  required
-                  name="newPassword"
-                  className="w-full px-4 py-3 text-sm border border-white/20 bg-black/20 text-white focus:outline-none focus:ring-1 focus:ring-white"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn"
-              >
-                {saving ? 'Saving…' : 'Change password'}
-              </button>
-            </form>
-
+            <h3 className="text-xl font-serif text-white mb-6">Password</h3>
+            <p className="text-secondary-grey text-sm mb-4">
+              Password is managed by your authentication provider. Use the forgot password flow to reset it.
+            </p>
             <hr className="my-8 border-white/10" />
 
             <button
-              onClick={() => { logout(); navigate('/'); }}
+              onClick={handleDeleteAccount}
               className="w-full py-3 text-xs font-sans font-medium tracking-widest uppercase text-red-400 border border-red-400 hover:bg-red-400 hover:text-black transition-colors"
             >
               Delete account
@@ -224,17 +181,17 @@ export function AccountPage() {
                 <div key={b.id} className="flex items-center gap-4 border-b border-white/5 pb-4">
                   <div className="flex-1">
                     <Link
-                      to={`/articles/${b.slug}`}
+                      to={`/articles/${b.publication_id}`}
                       className="text-sm font-serif text-white hover:text-secondary-grey transition-colors"
                     >
                       {b.title}
                     </Link>
                     <p className="text-[11px] font-sans tracking-widest uppercase text-secondary-grey mt-1">
-                      {b.reading_time} min read · {b.is_premium ? 'Premium' : 'Free'}
+                      {b.reading_time} min read
                     </p>
                   </div>
                   <button
-                    onClick={() => toggleBookmark(b.article_id, true)}
+                    onClick={() => toggleBookmark(b.publication_id, true)}
                     className="text-xs text-red-400 hover:text-red-300 transition-colors"
                   >
                     Remove
@@ -272,7 +229,7 @@ export function AccountPage() {
           <div>
             <h3 className="text-xl font-serif text-white mb-6">Upgrade to premium</h3>
             <p className="text-secondary-grey text-sm mb-6">
-              Premium membership gives you access to all premium publications, exclusive articles, and member-only content.
+              Premium membership gives you access to premium publications, exclusive articles, and member-only content.
             </p>
             <Link to="/membership" className="btn">
               Subscribe to premium

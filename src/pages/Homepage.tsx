@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { articleApi, categoryApi } from '@/lib/api';
+import { articleApi, categoryApi, newsletterApi } from '@/lib/api';
 import type { Article } from '@/types/index';
 
 function ReadingTime({ minutes }: { minutes: number }) {
@@ -18,32 +18,39 @@ export function Homepage() {
 
   useEffect(() => {
     let mounted = true;
-    articleApi.list({ sort: 'newest', per_page: 6 }).then(({ data }) => {
+    articleApi.list({ sort: 'newest', per_page: 6 }).then((res: any) => {
+      const data = res.data || [];
       if (mounted) {
         setFeatured(data[0] || null);
         setRecent(data.slice(1, 4));
       }
     });
-    articleApi.list({ sort: 'popular', per_page: 4 }).then(({ data }) => {
-      if (mounted) setPopular(data);
+    articleApi.list({ sort: 'popular', per_page: 4 }).then((res: any) => {
+      if (mounted) setPopular(res.data || []);
     });
-    categoryApi.list().then(({ data }) => {
-      if (mounted) setCategories(data);
+    categoryApi.list().then((res: any) => {
+      if (mounted) setCategories(res.data || []);
     }).finally(() => {
       if (mounted) setLoading(false);
     });
     return () => { mounted = false; };
   }, []);
 
-  const handleNewsletter = (e: React.FormEvent) => {
+  const handleNewsletter = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNewsletterStatus('success');
+    if (!newsletterEmail) return;
+    try {
+      await newsletterApi.subscribe({ email: newsletterEmail });
+      setNewsletterStatus('success');
+    } catch {
+      setNewsletterStatus('error');
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
-        <div className="masthead mb-2">AntiPerson</div>
+        <div className="masthead mb-2">AntiJournals</div>
       </div>
     );
   }
@@ -55,7 +62,7 @@ export function Homepage() {
       <section className="py-20 lg:py-32 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <div className="masthead mb-1">AntiPerson</div>
+            <div className="masthead mb-1">AntiJournals</div>
             <div className="masthead-sub">Independent publication</div>
           </div>
 
@@ -89,7 +96,7 @@ export function Homepage() {
           <div className="flex items-center justify-between mb-12">
             <div>
               <h2 className="text-2xl md:text-3xl font-serif text-black mb-2">Recently published</h2>
-              <p className="text-secondary-grey text-sm">New writing from AntiPerson</p>
+              <p className="text-secondary-grey text-sm">New writing from AntiJournals</p>
             </div>
             <Link
               to="/archive"
@@ -106,9 +113,9 @@ export function Homepage() {
                   <h3 className="text-xl font-serif text-black leading-tight group-hover:text-secondary-grey transition-colors mb-2">
                     {article.title}
                   </h3>
-                  <p className="text-secondary-grey text-sm leading-relaxed line-clamp-3">
-                    {article.excerpt || ''}
-                  </p>
+                    <p className="text-secondary-grey text-sm leading-relaxed line-clamp-3">
+                      {article.excerpt || ''}
+                    </p>
                 </div>
                 <div className="pt-4 border-t border-black/10">
                   <div className="flex items-center justify-between">
@@ -242,6 +249,11 @@ export function Homepage() {
           {newsletterStatus === 'success' && (
             <p className="mt-4 text-xs text-secondary-grey">
               Thank you for subscribing. Please check your inbox to confirm.
+            </p>
+          )}
+          {newsletterStatus === 'error' && (
+            <p className="mt-4 text-xs text-red-600">
+              Subscription failed. Please try again.
             </p>
           )}
         </div>

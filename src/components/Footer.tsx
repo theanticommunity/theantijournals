@@ -4,6 +4,8 @@ const FOOTER_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/archive', label: 'Archive' },
   { href: '/about', label: 'About' },
+  { href: '/terms', label: 'Terms of Service' },
+  { href: '/privacy', label: 'Privacy Policy' },
 ];
 
 const NEWSLETTER_LINKS = [
@@ -18,7 +20,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 py-12">
           <div className="col-span-2 md:col-span-1">
-            <div className="masthead mb-2">AntiPerson</div>
+            <div className="masthead mb-2">AntiJournals</div>
             <div className="masthead-sub mb-6">Independent publication</div>
             <p className="text-secondary-grey text-sm leading-relaxed">
               Writing on humanity, society, morality, and the things rarely said out loud.
@@ -69,6 +71,50 @@ export function Footer() {
 
           <div>
             <h3 className="text-xs font-sans font-medium tracking-widest uppercase text-secondary-grey mb-6">
+              Legal
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <a
+                  href="/privacy-policy.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-black hover:text-secondary-grey transition-colors"
+                >
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/terms-of-service.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-black hover:text-secondary-grey transition-colors"
+                >
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/dmca"
+                  className="text-sm text-black hover:text-secondary-grey transition-colors"
+                >
+                  DMCA / Copyright
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/accessibility"
+                  className="text-sm text-black hover:text-secondary-grey transition-colors"
+                >
+                  Accessibility
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-xs font-sans font-medium tracking-widest uppercase text-secondary-grey mb-6">
               Connect
             </h3>
             <ul className="space-y-3">
@@ -84,7 +130,7 @@ export function Footer() {
               ))}
               <li>
                 <a
-                  href="mailto:hello@antiperson.example"
+                  href="mailto:theanticommunity101@gmail.com"
                   className="text-sm text-black hover:text-secondary-grey transition-colors"
                 >
                   Contact
@@ -96,7 +142,7 @@ export function Footer() {
 
         <div className="border-t border-black/10 pt-8 pb-12">
           <p className="text-xs text-secondary-grey">
-            {year} AntiPerson. All rights reserved.
+            {year} AntiJournals under AntiPerson. All rights reserved.
           </p>
         </div>
       </div>

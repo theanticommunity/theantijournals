@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/useAuth';
 import { paymentApi, membershipApi } from '@/lib/api';
 
@@ -7,6 +7,10 @@ export function MembershipPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [membership, setMembership] = useState<{ membership: string; subscription_status: string | null } | null>(null);
+  const [plans] = useState<{ id: string; name: string; amount: number; interval: string }[]>([
+    { id: 'monthly', name: 'Monthly', amount: 200000, interval: 'month' },
+    { id: 'yearly', name: 'Yearly', amount: 2000000, interval: 'year' },
+  ]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
@@ -14,8 +18,8 @@ export function MembershipPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await membershipApi.get();
-        setMembership(res.data.data);
+        const mRes = await membershipApi.get();
+        setMembership(mRes.data);
       } catch {
         // Ignore
       } finally {
@@ -25,7 +29,7 @@ export function MembershipPage() {
     load();
   }, [user]);
 
-  async function handleSubscribe(plan: string) {
+  async function handleSubscribe(planId: string) {
     if (!user) {
       navigate('/login');
       return;
@@ -33,10 +37,10 @@ export function MembershipPage() {
     setError('');
     setProcessing(true);
     try {
-      const res = await paymentApi.createSubscription({ plan, email: user.email });
-      const { authorization_url } = res.data.data;
+      const res = await paymentApi.createSubscription({ plan: planId, email: user.email || '' });
+      const { authorization_url } = res.data as { authorization_url?: string };
       if (authorization_url) {
-        window.location.href = authorization_url;
+        window.location.assign(authorization_url);
       } else {
         setError('Payment initialization failed.');
       }
@@ -53,7 +57,7 @@ export function MembershipPage() {
     <div className="bg-white">
       <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <div className="masthead mb-2">AntiPerson</div>
+          <div className="masthead mb-2">AntiJournals</div>
           <div className="masthead-sub mb-10">Membership</div>
 
           <h1 className="text-balance text-4xl md:text-5xl font-serif text-black leading-tight mb-12">
@@ -85,60 +89,41 @@ export function MembershipPage() {
                 </div>
               )}
 
-              {!isPremium && (
+              {!isPremium && plans.length > 0 && (
                 <>
                   <div className="grid md:grid-cols-2 gap-12 mb-16">
-                    <div className="border border-black/10 p-8">
-                      <h2 className="text-xl font-serif text-black mb-4">Free</h2>
-                      <div className="text-3xl font-serif font-bold text-black mb-2">Free</div>
-                      <p className="text-secondary-grey text-sm mb-6">
-                        Access to free publications and newsletter.
-                      </p>
-                      <ul className="space-y-3 text-sm text-secondary-grey mb-6">
-                        <li>Free publications</li>
-                        <li>Newsletter subscription</li>
-                        <li>Optional user account</li>
-                        <li>Bookmark publications</li>
-                      </ul>
-                      <Link
-                        to="/register"
-                        className="btn-outline block text-center"
-                      >
-                        Join free
-                      </Link>
-                    </div>
-
-                    <div className="border border-black bg-black p-8">
-                      <h2 className="text-xl font-serif text-white mb-4">Premium</h2>
-                      <div className="text-3xl font-serif font-bold text-white mb-1">₦2,000</div>
-                      <div className="text-secondary-grey/70 text-sm mb-6">/ month</div>
-                      <p className="text-secondary-grey text-sm mb-6">
-                        Access to all publications including premium and exclusive content.
-                      </p>
-                      <ul className="space-y-3 text-sm text-secondary-grey/70 mb-6">
-                        <li>All free publications</li>
-                        <li>Premium articles</li>
-                        <li>Member-only content</li>
-                        <li>Subscription management</li>
-                      </ul>
-                      <button
-                        onClick={() => handleSubscribe('monthly')}
-                        disabled={processing}
-                        className="btn block text-center w-full"
-                      >
-                        {processing ? 'Subscribing…' : 'Subscribe monthly'}
-                      </button>
-                      <button
-                        onClick={() => handleSubscribe('yearly')}
-                        disabled={processing}
-                        className="btn-outline block text-center w-full mt-4"
-                      >
-                        ₦20,000 / year
-                      </button>
-                      <p className="mt-4 text-xs text-secondary-grey/70 text-center">
-                        Powered by Paystack. International cards accepted.
-                      </p>
-                    </div>
+                    {plans.map((plan) => (
+                      <div key={plan.id} className={`border p-8 ${plan.interval === 'year' ? 'border-black bg-black' : 'border-black/10'}`}>
+                        <h2 className={`text-xl font-serif text-black mb-4 ${plan.interval === 'year' ? 'text-white' : ''}`}>
+                          {plan.name}
+                        </h2>
+                        <div className={`text-3xl font-serif font-bold mb-2 ${plan.interval === 'year' ? 'text-white' : 'text-black'}`}>
+                          ₦{(plan.amount / 100).toLocaleString()}
+                        </div>
+                        <div className={`text-secondary-grey/70 text-sm mb-6 ${plan.interval === 'year' ? '' : 'text-secondary-grey'}`}>
+                          / {plan.interval}
+                        </div>
+                        <p className={`text-secondary-grey text-sm mb-6 ${plan.interval === 'year' ? 'text-secondary-grey/70' : ''}`}>
+                          Access to all publications including premium and exclusive content.
+                        </p>
+                        <ul className={`space-y-3 text-sm text-secondary-grey mb-6 ${plan.interval === 'year' ? 'text-secondary-grey/70' : ''}`}>
+                          <li>All free publications</li>
+                          <li>Premium articles</li>
+                          <li>Member-only content</li>
+                          <li>Subscription management</li>
+                        </ul>
+                        <button
+                          onClick={() => handleSubscribe(plan.id)}
+                          disabled={processing}
+                          className={`btn block text-center w-full ${plan.interval === 'year' ? 'btn-outline' : ''}`}
+                        >
+                          {processing ? 'Subscribing…' : `Subscribe ${plan.interval}`}
+                        </button>
+                        <p className="mt-4 text-xs text-secondary-grey/70 text-center">
+                          Powered by Paystack. International cards accepted.
+                        </p>
+                      </div>
+                    ))}
                   </div>
 
                   <hr className="my-12 border-black/10" />
@@ -153,7 +138,27 @@ export function MembershipPage() {
                       Payment processing is powered by Paystack. International cards accepted.
                     </p>
                   </div>
+
+                  <div className="mt-8 p-4 bg-light-grey border border-black/10 rounded">
+                    <p className="text-[10px] font-sans font-medium tracking-widest uppercase text-secondary-grey mb-2">
+                      EU consumers — cooling-off period
+                    </p>
+                    <p className="text-[10px] text-secondary-grey leading-relaxed">
+                      If you are located in the European Union, you have a 14-day cooling-off period from the date
+                      of purchase. By subscribing, you consent to immediate access to digital content and
+                      acknowledge your right to withdraw is lost once access begins, except as required by law.
+                      No refunds for partial subscription periods except as required by law.
+                    </p>
+                  </div>
                 </>
+              )}
+
+              {!isPremium && plans.length === 0 && (
+                <div className="text-center py-20">
+                  <p className="text-secondary-grey text-sm">
+                    No subscription plans available at the moment.
+                  </p>
+                </div>
               )}
             </>
           )}

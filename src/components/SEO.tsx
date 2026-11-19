@@ -20,7 +20,7 @@ export function SEO({
 
   return (
     <Helmet>
-      <title>{title} — AntiPerson</title>
+      <title>{title} — AntiJournals</title>
       <meta name="description" content={description} />
       <meta name="viewport" content="width=device-width, initial-scale=1" />
       <link rel="canonical" href={url} />
@@ -30,7 +30,7 @@ export function SEO({
       <meta property="og:url" content={url} />
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
-      <meta property="og:site_name" content="AntiPerson" />
+      <meta property="og:site_name" content="AntiJournals" />
       {ogImage && <meta property="og:image" content={ogImage} />}
 
       {/* Twitter */}
@@ -84,7 +84,7 @@ export function ArticleSEO({
               },
               publisher: {
                 '@type': 'Organization',
-                name: 'AntiPerson',
+                name: 'AntiJournals under AntiPerson',
                 logo: {
                   '@type': 'ImageObject',
                   url: `${baseUrl}/favicon.svg`,
